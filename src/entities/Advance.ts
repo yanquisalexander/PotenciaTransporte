@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Driver } from './Driver';
 
@@ -9,23 +10,20 @@ export class Advance {
   @Column({ type: 'decimal', precision: 10, scale: 2 })
   amount!: number;
 
-  @Column({ default: '$' })
+  @Column('varchar', { default: '$' })
   currency!: '$' | 'USD' | 'R$';
 
-  @Column({ nullable: true, type: 'text' })
-  description?: string;
-
-  @Column()
+  @Column('date')
   date!: Date;
 
-  @Column({ default: false })
+  @Column('boolean', { default: false })
   isIncludedInLiquidation!: boolean;
 
-  @ManyToOne(() => Driver, driver => driver.advances)
+  @ManyToOne('Driver', 'advances')
   @JoinColumn({ name: 'driverId' })
   driver!: Driver;
 
-  @Column()
+  @Column('int')
   driverId!: number;
 
   @CreateDateColumn()

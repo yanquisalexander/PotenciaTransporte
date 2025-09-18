@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Trip } from './Trip';
 import { Liquidation } from './Liquidation';
@@ -8,31 +9,31 @@ export class Driver {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column('varchar')
   name!: string;
 
-  @Column({ unique: true })
+  @Column('varchar', { unique: true })
   document!: string;
 
-  @Column()
+  @Column('varchar')
   contact!: string;
 
-  @Column({ nullable: true })
+  @Column('varchar', { nullable: true })
   email?: string;
 
-  @Column({ nullable: true })
+  @Column('varchar', { nullable: true })
   hashedPassword?: string;
 
-  @Column({ default: 'driver' })
+  @Column('varchar', { default: 'driver' })
   role!: 'admin' | 'driver';
 
-  @OneToMany(() => Trip, trip => trip.driver)
+  @OneToMany('Trip', 'driver')
   trips!: Trip[];
 
-  @OneToMany(() => Liquidation, liquidation => liquidation.driver)
+  @OneToMany('Liquidation', 'driver')
   liquidations!: Liquidation[];
 
-  @OneToMany(() => Advance, advance => advance.driver)
+  @OneToMany('Advance', 'driver')
   advances!: Advance[];
 
   @CreateDateColumn()

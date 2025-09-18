@@ -1,21 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn, BaseEntity } from 'typeorm';
 import { Trip } from './Trip';
 
 @Entity()
-export class Provider {
+export class Provider extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column('varchar')
   name!: string;
 
-  @Column({ unique: true })
+  @Column('varchar', { unique: true })
   taxId!: string; // RUT
 
-  @Column()
+  @Column('varchar')
   contact!: string;
 
-  @OneToMany(() => Trip, trip => trip.provider)
+  @OneToMany('Trip', 'provider')
   trips!: Trip[];
 
   @CreateDateColumn()

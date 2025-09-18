@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Driver } from './Driver';
 import { Trip } from './Trip';
@@ -8,7 +9,7 @@ export class Liquidation {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column('date')
   date!: Date;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
@@ -20,20 +21,20 @@ export class Liquidation {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   amountBRL!: number; // Real brasileño (R$)
 
-  @Column({ default: 'pending' })
+  @Column('varchar', { default: 'pending' })
   status!: 'pending' | 'paid' | 'canceled';
 
   @Column({ nullable: true, type: 'text' })
   notes?: string;
 
-  @ManyToOne(() => Driver, driver => driver.liquidations)
+  @ManyToOne('Driver', 'liquidations')
   @JoinColumn({ name: 'driverId' })
   driver!: Driver;
 
-  @Column()
+  @Column('int')
   driverId!: number;
 
-  @ManyToMany(() => Trip)
+  @ManyToMany('Trip')
   @JoinTable({
     name: 'liquidation_trips',
     joinColumn: { name: 'liquidationId', referencedColumnName: 'id' },
@@ -41,7 +42,7 @@ export class Liquidation {
   })
   trips!: Trip[];
 
-  @ManyToMany(() => Advance)
+  @ManyToMany('Advance')
   @JoinTable({
     name: 'liquidation_advances',
     joinColumn: { name: 'liquidationId', referencedColumnName: 'id' },

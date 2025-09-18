@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Driver } from './Driver';
 import { Provider } from './Provider';
@@ -7,13 +8,13 @@ export class Trip {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column('date')
   date!: Date;
 
-  @Column()
+  @Column('varchar')
   origin!: string;
 
-  @Column()
+  @Column('varchar')
   destination!: string;
 
   @Column({ nullable: true, type: 'decimal', precision: 10, scale: 2 })
@@ -31,27 +32,27 @@ export class Trip {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   valuePerTon!: number;
 
-  @Column({ default: '$' })
+  @Column('varchar', { default: '$' })
   currency!: '$' | 'USD' | 'R$';
+
+  @Column('int')
+  driverId!: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 100 })
   driverPercentage!: number;
 
-  @Column({ default: false })
+  @Column('boolean', { default: false })
   isLiquidated!: boolean;
 
-  @ManyToOne(() => Driver, driver => driver.trips)
+  @ManyToOne('Driver', 'trips')
   @JoinColumn({ name: 'driverId' })
   driver!: Driver;
 
-  @Column()
-  driverId!: number;
-
-  @ManyToOne(() => Provider, provider => provider.trips)
+  @ManyToOne('Provider', 'trips')
   @JoinColumn({ name: 'providerId' })
   provider!: Provider;
 
-  @Column()
+  @Column('int')
   providerId!: number;
 
   @CreateDateColumn()

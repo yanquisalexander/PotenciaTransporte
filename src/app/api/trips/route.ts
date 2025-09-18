@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { getDataSource } from '@/lib/db/config';
@@ -6,7 +7,7 @@ import { Trip } from '@/entities/Trip';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession();
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     const dataSource = await getDataSource();
     const tripRepository = dataSource.getRepository(Trip);
-    
+
     const query = tripRepository.createQueryBuilder('trip')
       .leftJoinAndSelect('trip.driver', 'driver')
       .leftJoinAndSelect('trip.provider', 'provider')
@@ -28,11 +29,11 @@ export async function GET(request: NextRequest) {
     if (driverId) {
       query.andWhere('trip.driverId = :driverId', { driverId });
     }
-    
+
     if (providerId) {
       query.andWhere('trip.providerId = :providerId', { providerId });
     }
-    
+
     if (isLiquidated !== null) {
       query.andWhere('trip.isLiquidated = :isLiquidated', { isLiquidated: isLiquidated === 'true' });
     }
@@ -55,24 +56,24 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession();
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { 
-      date, 
-      origin, 
-      destination, 
-      providerId, 
-      driverId, 
-      originTons, 
-      destinationTons, 
-      directTons, 
-      notes, 
-      valuePerTon, 
-      currency, 
-      driverPercentage 
+    const {
+      date,
+      origin,
+      destination,
+      providerId,
+      driverId,
+      originTons,
+      destinationTons,
+      directTons,
+      notes,
+      valuePerTon,
+      currency,
+      driverPercentage
     } = await request.json();
 
     if (!date || !origin || !destination || !providerId || !driverId) {

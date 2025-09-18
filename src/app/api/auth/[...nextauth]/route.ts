@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
@@ -5,6 +6,7 @@ import { getDataSource } from '@/lib/db/config';
 import { Driver } from '@/entities/Driver';
 
 const handler = NextAuth({
+  secret: process.env.AUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -20,7 +22,7 @@ const handler = NextAuth({
         try {
           const dataSource = await getDataSource();
           const driverRepository = dataSource.getRepository(Driver);
-          
+
           const driver = await driverRepository.findOne({
             where: { document: credentials.document }
           });
