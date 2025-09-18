@@ -6,7 +6,6 @@ import { getDataSource } from '@/lib/db/config';
 import { Driver } from '@/entities/Driver';
 
 const handler = NextAuth({
-  secret: process.env.AUTH_SECRET,
   providers: [
     CredentialsProvider({
       name: 'credentials',
