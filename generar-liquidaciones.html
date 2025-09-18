@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Liquidación de Chofer</title>
+  <link rel="stylesheet" href="./assets/index.css" />
+  <script src="./assets/vue.global.prod.js  "></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body class="bg-gray-100 p-2 sm:p-6 text-xs sm:text-sm">
+  <div id="app" class="max-w-full sm:max-w-4xl mx-auto bg-white p-2 sm:p-6 rounded print:shadow-none shadow" v-cloak>
+    <header class="flex flex-row justify-between items-center mb-4">
+      <h1 class="text-xl sm:text-2xl font-bold mb-4">Liquidación de Chofer</h1>
+      <img src="./assets/logo-bw.png"
+        onerror="if (!this._triedRemote) { this._triedRemote = true; this.src='https://i.ibb.co/pvYHFbDq/logo-bw.png'; } else { this.onerror=null; this.outerHTML='<svg width=\'56\' height=\'56\' viewBox=\'0 0 56 56\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'><rect width=\'56\' height=\'56\' rx=\'8\' fill=\'#e5e7eb\'/><text x=\'50%\' y=\'50%\' text-anchor=\'middle\' dy=\'.3em\' font-size=\'12\' fill=\'#888\'>Logo La Potencia</text></svg>'; }"
+        class="h-12 sm:h-14" alt="Logo La Potencia" />
+    </header>
+    <div v-if="modoVista === 'ver'" class="print:hidden mb-4 text-center text-blue-700 font-semibold">Viendo liquidación
+      del
+      historial (solo lectura)</div>
+    <div v-else-if="modoVista === 'editar'" class="print:hidden mb-4 text-center text-green-700 font-semibold">
+      Modificando
+      liquidación del historial</div>
+
+    <div class="mb-4 flex flex-col sm:flex-row sm:items-center gap-2">
+      <label class="font-semibold">Nombre del chofer:</label>
+      <input v-model="chofer" type="text" class="sm:ml-2 border rounded px-2 py-1 w-full sm:w-auto print:hidden"
+        placeholder="Ej: Juan Pérez" :disabled="camposDeshabilitados">
+      <span class="hidden print:inline border rounded px-2 py-1 align-middle inline-block min-w-[120px]">{{ chofer
+        }}</span>
+    </div>
+
+    <!-- Tabla de cargas -->
+    <h2 class="font-semibold mt-4 mb-2">Cargas</h2>
+    <div class="overflow-x-auto">
+      <table class="table-auto min-w-[600px] w-full mb-4 border text-xs sm:text-sm">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="border px-2 py-1">Proveedor</th>
+            <th class="border px-2 py-1">Toneladas</th>
+            <th class="border px-2 py-1">Valor/Tonelada</th>
+            <th class="border px-2 py-1">Moneda</th>
+            <th class="border px-2 py-1">% Chofer</th>
+            <th class="border px-2 py-1">SubTotal</th>
+            <th class="border px-2 py-1 print:hidden">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(fila, i) in cargas" :key="i">
+            <td class="border px-1 print:align-middle print:py-1 print:px-2">
+              <input v-model="fila.proveedor" class="w-full border px-1 print:hidden"
+                :disabled="camposDeshabilitados" />
+              <span class="hidden print:inline">{{ fila.proveedor }}</span>
+            </td>
+            <td class="border px-1 print:align-middle print:py-1 print:px-2">
+              <input v-model.number="fila.toneladas" type="number" class="w-full border px-1 print:hidden"
+                :disabled="camposDeshabilitados" />
+              <span class="hidden print:inline">{{ fila.toneladas }}</span>
+            </td>
+            <td class="border px-1 print:align-middle print:py-1 print:px-2">
+              <input v-model.number="fila.valor" type="number" class="w-full border px-1 print:hidden"
+                :disabled="camposDeshabilitados" />
+              <span class="hidden print:inline">{{ fila.valor }}</span>
+            </td>
+            <td class="border px-1 print:align-middle print:py-1 print:px-2">
+              <select v-model="fila.moneda" class="w-full border print:hidden" :disabled="camposDeshabilitados">
+                <option>$</option>
+                <option>USD</option>
+                <option>R$</option>
+              </select>
+              <span class="hidden print:inline">{{ fila.moneda }}</span>
+            </td>
+            <td class="border px-1 print:align-middle print:py-1 print:px-2">
+              <input v-model.number="fila.porcentaje" type="number" class="w-full border px-1 print:hidden"
+                :disabled="camposDeshabilitados" />
+              <span class="hidden print:inline">{{ fila.porcentaje }}</span>
+            </td>
+            <td class="text-right pr-2 font-mono">
+              {{ calcularSubTotal(fila).toFixed(2) }}
+            </td>
+            <td class="print:hidden">
+              <button @click="cargas.splice(i, 1)" class="text-red-500 hover:underline"
+                :disabled="camposDeshabilitados">Eliminar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <button @click="agregarCarga" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 mt-2"
+      :disabled="camposDeshabilitados">Agregar fila</button>
+
+    <!-- Adelantos -->
+    <h2 class="font-semibold mt-6 mb-2">Adelantos</h2>
+    <div class="overflow-x-auto">
+      <table class="table-auto min-w-[300px] w-full mb-4 border text-xs sm:text-sm">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="border px-2 py-1">Monto</th>
+            <th class="border px-2 py-1">Moneda</th>
+            <th class="border px-2 py-1">Descripción</th>
+            <th class="border px-2 py-1 print:hidden">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(a, i) in adelantos" :key="i">
+            <td class="border px-1 print:align-middle print:py-1 print:px-2">
+              <input v-model.number="a.monto" type="number" class="w-full border px-1 print:hidden"
+                :disabled="camposDeshabilitados" />
+              <span class="hidden print:inline">{{ a.monto }}</span>
+            </td>
+            <td class="border px-1 print:align-middle print:py-1 print:px-2">
+              <select v-model="a.moneda" class="w-full border print:hidden" :disabled="camposDeshabilitados">
+                <option>$</option>
+                <option>USD</option>
+                <option>R$</option>
+              </select>
+              <span class="hidden print:inline">{{ a.moneda }}</span>
+            </td>
+            <td class="border px-1 print:align-middle print:py-1 print:px-2">
+              <textarea v-model="a.descripcion" type="text" class="w-full border px-1 print:hidden"
+                :disabled="camposDeshabilitados" placeholder="Observación o descripción"></textarea>
+              <span class="hidden print:inline">{{ a.descripcion }}</span>
+            </td>
+            <td class="print:hidden">
+              <button @click="adelantos.splice(i, 1)" class="text-red-500 hover:underline"
+                :disabled="camposDeshabilitados">Eliminar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <button @click="agregarAdelanto" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 mt-2"
+      :disabled="camposDeshabilitados">Agregar adelanto</button>
+
+    <!-- Información adicional / Adenda -->
+    <div class="mt-4">
+      <label class="font-semibold block mb-1">Información adicional / Adenda:</label>
+      <textarea v-model="adenda" rows="2" class="w-full border rounded px-2 py-1 print:hidden"
+        :disabled="camposDeshabilitados" placeholder="Observaciones, notas, etc."></textarea>
+      <span class="hidden print:inline block w-full min-h-[38px] align-top">{{ adenda }}</span>
+    </div>
+
+
+    <!-- Resumen -->
+    <h2 class="font-semibold mt-6 mb-2">Resumen</h2>
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+      <span class="text-gray-600">Fecha generada: {{ fechaGenerada }}</span>
+      <span class="text-gray-600">Hora: {{ horaGenerada }}</span>
+    </div>
+    <div class="space-y-1">
+      <div v-for="moneda in ['$', 'USD', 'R$']" :key="moneda">
+        <p>
+          <strong>Total en {{ moneda }}:</strong>
+          {{ totalPorMoneda(moneda).toFixed(2) }} {{ moneda }} -
+          <strong>Adelantos:</strong> {{ adelantosPorMoneda(moneda) }} {{ moneda }} =
+          <strong :class="colorSaldo(saldoRedondeado(moneda))">
+            {{ saldoRedondeado(moneda) }} {{ moneda }}
+          </strong>
+        </p>
+
+
+      </div>
+
+      <div v-if="adelantos.length" class="text-xs text-gray-500">
+        <p>Los adelantos se restan del total para calcular el saldo final.</p>
+        <br />
+
+      </div>
+
+    </div>
+
+
+    <footer class="hidden print:block italic text-gray-600 mx-auto text-center max-w-[600px] mt-4">
+      Este documento es una liquidación de chofer generada por la aplicación La Potencia Transportes.
+      <br>
+      Si crees que hay algún error, por favor contacta al administrador del sistema.
+      <br>
+      <strong>La Potencia Transportes</strong> - Todos los derechos reservados.
+    </footer>
+
+
+    <!-- Botones de exportar/importar y guardar -->
+    <div class="flex flex-col sm:flex-row gap-2 mt-4 print:hidden">
+      <button @click="guardarBorradorManual" class="bg-gray-800 text-white px-3 py-1 rounded hover:bg-gray-900">Guardar
+      </button>
+      <button @click="exportarExcelYGuardar"
+        class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">Exportar Excel</button>
+      <button @click="exportarJSONYGuardar" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">Exportar
+        JSON</button>
+      <label class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 cursor-pointer">
+        Importar JSON
+        <input type="file" accept="application/json" @change="importarJSON" class="hidden" />
+      </label>
+      <button @click="mostrarHistorial = !mostrarHistorial"
+        class="bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600">Historial</button>
+    </div>
+
+    <!-- Aviso de modo -->
+    <div v-if="modoVista === 'ver'" class="print:hidden mb-4 text-center text-blue-700 font-semibold">Viendo liquidación
+      del
+      historial (solo lectura)</div>
+    <div v-else-if="modoVista === 'editar'" class="print:hidden mb-4 text-center text-green-700 font-semibold">
+      Modificando
+      liquidación del historial</div>
+
+    <!-- Historial -->
+    <div v-if="mostrarHistorial" class="mt-4 bg-gray-100 border rounded p-3 print:hidden">
+      <div class="flex justify-between items-center mb-2">
+        <span class="font-semibold">Historial de liquidaciones</span>
+        <button @click="borrarHistorial" class="text-red-600 hover:underline text-xs">Borrar historial</button>
+      </div>
+      <ul class="max-h-48 overflow-y-auto text-xs">
+        <li v-for="(item, idx) in historial" :key="item.id || idx" class="mb-1 flex items-center gap-2">
+          <span>
+            <span class="font-mono text-[10px]">#{{ item.id || idx + 1 }}</span>
+            {{ item.fecha }} {{ item.hora }} - {{ item.chofer || 'Sin nombre' }}
+            <span v-if="item.draft"
+              class="ml-1 px-2 py-0.5 rounded bg-yellow-200 text-yellow-800 text-[10px] font-semibold">Draft</span>
+          </span>
+          <button @click="verHistorial(idx)" class="text-blue-600 hover:underline">Ver</button>
+          <button @click="editarHistorial(idx)" class="text-green-600 hover:underline">Editar</button>
+          <button @click="eliminarHistorial(idx)" class="text-red-600 hover:underline">Eliminar</button>
+        </li>
+        <li v-if="!historial.length" class="text-gray-500">No hay historial guardado.</li>
+      </ul>
+    </div>
+
+    <!-- Botón de imprimir -->
+    <div class="mt-6">
+      <button onclick="window.print()"
+        class="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 w-full sm:w-auto">Imprimir</button>
+    </div>
+
+    <div v-if="toastMsg"
+      class="fixed bottom-4 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded shadow-lg z-50 animate-fadein print:hidden">
+      {{ toastMsg }}
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    let idLiquidacionCounter = Number(localStorage.getItem('liquidacion_id_counter') || '1');
+    function generarIdNumerico() {
+      const id = idLiquidacionCounter;
+      idLiquidacionCounter++;
+      localStorage.setItem('liquidacion_id_counter', idLiquidacionCounter);
+      return id;
+    }
+
+    createApp({
+      data() {
+        const ahora = new Date();
+        let borrador = null;
+        try {
+          borrador = JSON.parse(localStorage.getItem('liquidacion_borrador') || 'null');
+        } catch { }
+        return {
+          chofer: '',
+          cargas: [],
+          adelantos: [],
+          adenda: '',
+          fechaGenerada: ahora.toLocaleDateString(),
+          horaGenerada: ahora.toLocaleTimeString(),
+          mostrarHistorial: false,
+          historial: JSON.parse(localStorage.getItem('liquidaciones_historial') || '[]'),
+          toastMsg: '',
+          borradorPendiente: borrador ? true : false,
+          modoVista: '', // '', 'ver', 'editar'
+          idxEditando: null,
+        };
+      },
+      mounted() {
+        if (this.borradorPendiente) {
+          // Mostrar info del borrador
+          const borrador = JSON.parse(localStorage.getItem('liquidacion_borrador'));
+          const choferB = borrador?.chofer || 'Sin nombre';
+          const fechaB = borrador?.fecha || '';
+          const horaB = borrador?.hora || '';
+          this.mostrarToast(`Se encontró un borrador de ${choferB} (${fechaB} ${horaB}). ¿Desea recuperarlo?`);
+          setTimeout(() => {
+            if (confirm(`Se encontró un borrador de ${choferB} (${fechaB} ${horaB}). ¿Desea recuperarlo?`)) {
+              this.recuperarBorrador();
+            } else {
+              // Guardar en historial como draft
+              let historial = JSON.parse(localStorage.getItem('liquidaciones_historial') || '[]');
+              const draft = { ...borrador, draft: true };
+              historial.unshift(draft);
+              if (historial.length > 30) historial = historial.slice(0, 30);
+              localStorage.setItem('liquidaciones_historial', JSON.stringify(historial));
+              this.historial = historial;
+              localStorage.removeItem('liquidacion_borrador');
+            }
+            this.toastMsg = '';
+            this.borradorPendiente = false;
+          }, 1000);
+        }
+        // Guardado automático al cambiar datos con debounce
+        let debounceTimer = null;
+        this.$watch(
+          () => [this.chofer, JSON.stringify(this.cargas), JSON.stringify(this.adelantos)],
+          () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+              if (this.modoVista === 'ver') return;
+              if (this.modoVista === 'editar' && this.idxEditando !== null) {
+                // Actualizar la liquidación editada en el historial
+                let historial = JSON.parse(localStorage.getItem('liquidaciones_historial') || '[]');
+                if (historial[this.idxEditando]) {
+                  historial[this.idxEditando] = {
+                    ...historial[this.idxEditando],
+                    chofer: this.chofer,
+                    cargas: this.cargas,
+                    adelantos: this.adelantos,
+                    adenda: this.adenda,
+                    fecha: this.fechaGenerada,
+                    hora: this.horaGenerada
+                  };
+                  localStorage.setItem('liquidaciones_historial', JSON.stringify(historial));
+                  this.historial = historial;
+                }
+                return;
+              }
+              if (this.modoVista === '') {
+                this.guardarBorrador();
+              }
+            }, 1000);
+          },
+          { deep: true }
+        );
+      },
+      methods: {
+        agregarCarga() {
+          this.cargas.push({ proveedor: '', toneladas: 0, valor: 0, moneda: '$', porcentaje: 100 });
+        },
+        agregarAdelanto() {
+          this.adelantos.push({ monto: 0, moneda: '$', descripcion: '' });
+        },
+        calcularSubTotal(fila) {
+          return fila.toneladas * fila.valor * (fila.porcentaje / 100);
+        },
+        totalPorMoneda(moneda) {
+          return this.cargas
+            .filter(f => f.moneda === moneda)
+            .reduce((sum, f) => sum + this.calcularSubTotal(f), 0);
+        },
+        adelantosPorMoneda(moneda) {
+          return this.adelantos
+            .filter(a => a.moneda === moneda)
+            .reduce((sum, a) => sum + a.monto, 0);
+        },
+        saldoRedondeado(moneda) {
+          const saldo = this.totalPorMoneda(moneda) - this.adelantosPorMoneda(moneda);
+          const entero = Math.trunc(saldo);
+          const decimal = Math.abs(saldo - entero);
+          if (decimal >= 0.5) {
+            return saldo >= 0 ? entero + 1 : entero - 1;
+          } else {
+            return entero;
+          }
+        },
+        colorSaldo(saldo) {
+          if (saldo < 0) return 'text-red-600';
+          if (saldo > 0) return 'text-green-600';
+          return 'text-black';
+        },
+        guardarEnHistorial() {
+          if (this.modoVista === 'ver') return;
+
+          // Asignar id numérico único a la liquidación
+          const data = {
+            id: generarIdNumerico(),
+            chofer: this.chofer,
+            cargas: this.cargas,
+            adelantos: this.adelantos,
+            adenda: this.adenda,
+            fecha: this.fechaGenerada,
+            hora: this.horaGenerada
+          };
+          let historial = JSON.parse(localStorage.getItem('liquidaciones_historial') || '[]');
+          historial.unshift(data);
+          if (historial.length > 30) historial = historial.slice(0, 30); // máximo 30
+          localStorage.setItem('liquidaciones_historial', JSON.stringify(historial));
+          this.historial = historial;
+        },
+        exportarJSONYGuardar() {
+          this.exportarJSON();
+        },
+        exportarExcelYGuardar() {
+          this.exportarExcel();
+        },
+        restaurarHistorial(idx) {
+          const item = this.historial[idx];
+          if (!item) return;
+          this.chofer = item.chofer || '';
+          this.cargas = item.cargas || [];
+          this.adelantos = item.adelantos || [];
+          this.adenda = item.adenda || '';
+          this.fechaGenerada = item.fecha || new Date().toLocaleDateString();
+          this.horaGenerada = item.hora || new Date().toLocaleTimeString();
+          this.mostrarHistorial = false;
+        },
+        borrarHistorial() {
+          if (confirm('¿Borrar todo el historial?')) {
+            localStorage.removeItem('liquidaciones_historial');
+            this.historial = [];
+          }
+        },
+        exportarJSON() {
+          const data = {
+            chofer: this.chofer,
+            cargas: this.cargas,
+            adelantos: this.adelantos,
+            adenda: this.adenda,
+            fecha: this.fechaGenerada,
+            hora: this.horaGenerada
+          };
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `liquidacion_${this.chofer || 'chofer'}_${new Date().toISOString().slice(0, 10)}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        },
+        importarJSON(e) {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            let raw = ev.target.result;
+            let data = null;
+            try {
+              data = JSON.parse(raw);
+            } catch {
+              // Intentar reparar errores comunes de JSON
+              let reparado = raw
+                .replace(/\r?\n|\r/g, '') // quitar saltos de línea
+                .replace(/,\s*([}\]])/g, '$1') // quitar comas finales
+                .replace(/(['\"])?([a-zA-Z0-9_]+)(['\"])?\s*:/g, '"$2":') // forzar comillas en claves
+                .replace(/'/g, '"'); // comillas simples a dobles
+              try {
+                data = JSON.parse(reparado);
+              } catch {
+                alert('Archivo JSON inválido');
+                return;
+              }
+            }
+            this.chofer = data.chofer || '';
+            this.cargas = Array.isArray(data.cargas) ? data.cargas : [];
+            // Asegurar que cada adelanto tenga los campos requeridos
+            this.adelantos = Array.isArray(data.adelantos) ? data.adelantos.map(a => ({
+              monto: a.monto || 0,
+              moneda: a.moneda || '$',
+              descripcion: a.descripcion || ''
+            })) : [];
+            this.adenda = data.adenda || '';
+            this.fechaGenerada = data.fecha || new Date().toLocaleDateString();
+            this.horaGenerada = data.hora || new Date().toLocaleTimeString();
+          };
+          reader.readAsText(file);
+        },
+        exportarExcel() {
+          // Genera un archivo Excel simple (CSV)
+          let csv = `Chofer:,${this.chofer}\nFecha:,${this.fechaGenerada}\nHora:,${this.horaGenerada}\n\nCargas\nProveedor,Toneladas,Valor/Tonelada,Moneda,% Chofer,SubTotal\n`;
+          this.cargas.forEach(f => {
+            csv += `${f.proveedor},${f.toneladas},${f.valor},${f.moneda},${f.porcentaje},${this.calcularSubTotal(f).toFixed(2)}\n`;
+          });
+          csv += `\nAdelantos\nMonto,Moneda,Descripción\n`;
+          this.adelantos.forEach(a => {
+            csv += `${a.monto},${a.moneda},${a.descripcion || ''}\n`;
+          });
+          csv += `\nResumen\nMoneda,Total,Adelantos,Saldo\n`;
+          ['$', 'USD', 'R$'].forEach(moneda => {
+            csv += `${moneda},${this.totalPorMoneda(moneda).toFixed(2)},${this.adelantosPorMoneda(moneda).toFixed(2)},${this.saldoRedondeado(moneda)}\n`;
+          });
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `liquidacion_${this.chofer || 'chofer'}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        },
+        eliminarHistorial(idx) {
+          if (confirm('¿Eliminar este registro del historial?')) {
+            this.historial.splice(idx, 1);
+            localStorage.setItem('liquidaciones_historial', JSON.stringify(this.historial));
+          }
+        },
+        mostrarToast(msg) {
+          this.toastMsg = msg;
+          setTimeout(() => { this.toastMsg = ''; }, 2000);
+        },
+        guardarBorrador() {
+          if (this.modoVista === 'ver' || this.modoVista === 'editar') return;
+          const data = {
+            chofer: this.chofer,
+            cargas: this.cargas,
+            adelantos: this.adelantos,
+            adenda: this.adenda,
+            fecha: this.fechaGenerada,
+            hora: this.horaGenerada
+          };
+          localStorage.setItem('liquidacion_borrador', JSON.stringify(data));
+          this.mostrarToast('Borrador guardado automáticamente');
+        },
+        recuperarBorrador() {
+          try {
+            const data = JSON.parse(localStorage.getItem('liquidacion_borrador'));
+            if (!data) return;
+            this.chofer = data.chofer || '';
+            this.cargas = data.cargas || [];
+            this.adelantos = data.adelantos || [];
+            this.adenda = data.adenda || '';
+            this.fechaGenerada = data.fecha || new Date().toLocaleDateString();
+            this.horaGenerada = data.hora || new Date().toLocaleTimeString();
+            this.mostrarToast('Borrador recuperado');
+          } catch { }
+        },
+        guardarBorradorManual() {
+          if (this.modoVista === 'ver') return;
+          if (this.modoVista === 'editar' && this.idxEditando !== null) {
+            let historial = JSON.parse(localStorage.getItem('liquidaciones_historial') || '[]');
+            if (historial[this.idxEditando]) {
+              this.actualizarFechaHora();
+              historial[this.idxEditando] = {
+                ...historial[this.idxEditando],
+                chofer: this.chofer,
+                cargas: this.cargas,
+                adelantos: this.adelantos,
+                adenda: this.adenda,
+                fecha: this.fechaGenerada,
+                hora: this.horaGenerada
+              };
+              localStorage.setItem('liquidaciones_historial', JSON.stringify(historial));
+              this.historial = historial;
+            }
+            this.mostrarToast('Guardado manualmente');
+            return;
+          }
+          // Solo en modo normal se crea una nueva entrada
+          this.actualizarFechaHora();
+          this.guardarEnHistorial();
+          localStorage.removeItem('liquidacion_borrador');
+          this.mostrarToast('Guardado manualmente');
+          // Limpiar para nueva liquidación (sin guardar borrador vacío)
+          this.chofer = '';
+          this.cargas = [];
+          this.adelantos = [];
+          this.adenda = '';
+          this.actualizarFechaHora();
+          this.modoVista = '';
+          this.idxEditando = null;
+        },
+        verHistorial(idx) {
+          const item = this.historial[idx];
+          if (!item) return;
+          this.chofer = item.chofer || '';
+          this.cargas = JSON.parse(JSON.stringify(item.cargas || []));
+          this.adelantos = JSON.parse(JSON.stringify(item.adelantos || []));
+          this.adenda = item.adenda || '';
+          this.fechaGenerada = item.fecha || new Date().toLocaleDateString();
+          this.horaGenerada = item.hora || new Date().toLocaleTimeString();
+          this.modoVista = 'ver';
+          this.idxEditando = idx;
+          this.mostrarHistorial = false;
+        },
+        editarHistorial(idx) {
+          const item = this.historial[idx];
+          if (!item) return;
+          this.chofer = item.chofer || '';
+          this.cargas = JSON.parse(JSON.stringify(item.cargas || []));
+          this.adelantos = JSON.parse(JSON.stringify(item.adelantos || []));
+          this.adenda = item.adenda || '';
+          this.fechaGenerada = item.fecha || new Date().toLocaleDateString();
+          this.horaGenerada = item.hora || new Date().toLocaleTimeString();
+          this.modoVista = 'editar';
+          this.idxEditando = idx;
+          this.mostrarHistorial = false;
+          this.mostrarToast('Ahora puedes modificar esta liquidación');
+        },
+        actualizarFechaHora() {
+          this.fechaGenerada = new Date().toLocaleDateString();
+          this.horaGenerada = new Date().toLocaleTimeString();
+        },
+      },
+      computed: {
+        camposDeshabilitados() {
+          return this.modoVista === 'ver';
+        }
+      },
+    }).mount('#app');
+  </script>
+
+  <style>
+    [v-cloak] {
+      display: none;
+    }
+
+    @keyframes fadein {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fadein {
+      animation: fadein 0.4s;
+    }
+
+    @media print {
+
+      button,
+      input,
+      select {
+        display: none !important;
+      }
+
+      input {
+        border: none;
+      }
+
+      th,
+      td {
+        border: 1px solid #e5e7eb !important;
+        /* gris claro igual que encabezado Tailwind */
+        padding: 4px 8px !important;
+        vertical-align: middle !important;
+      }
+
+      textarea {
+        display: none !important;
+      }
+    }
+  </style>
+</body>
+
+</html>
